@@ -13,6 +13,11 @@ func main() {
 
 	database.DatabaseConfig()
 
+	db, err := database.DatabaseConfig1()
+	if err != nil {
+		panic(err)
+	}
+
 	app := fiber.New()
 
 	// Setup CORS middleware
@@ -29,8 +34,8 @@ func main() {
 
 		return c.Next()
 	})
-
 	routes.Setup(app)
+	routes.SetupRoutes(app, db)
 
 	app.Listen(":8000")
 }
