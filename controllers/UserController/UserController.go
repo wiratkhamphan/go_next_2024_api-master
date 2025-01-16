@@ -4,6 +4,7 @@ import (
 	"database/sql"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/golang-jwt/jwt/v4"
 	"github.com/jmoiron/sqlx"
 	"github.com/wiratkhamphan/go_next_2024_api-master/models"
 )
@@ -164,4 +165,88 @@ func (u *UserController) UpdateUser(c *fiber.Ctx) error {
 	}
 
 	return c.JSON(fiber.Map{"message": "User updated successfully"})
+}
+
+func (u *UserController) Level(c *fiber.Ctx) error {
+	type Claims struct {
+		ID string `json:"id"`
+		jwt.StandardClaims
+	}
+
+	// รับ Authorization header
+	authHeader := c.Get("Authorization")
+	if authHeader == "" {
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+			"error": "Authorization header is missing",
+		})
+	}
+
+	// ดึง Token จาก Header
+	tokenString := ""
+	if len(authHeader) > 7 && authHeader[:7] == "Bearer " {
+		tokenString = authHeader[7:]
+	} else {
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+			"error": "Invalid Authorization header format",
+		})
+	}
+
+	// ตรวจสอบและแปลง Token
+	token, err := jwt.ParseWithClaims(tokenString, &Claims{}, func(token *jwt.Token) (interface{}, error) {
+		// Replace with your JWT secret key
+		return []byte("your_secret_key"), nil
+	})
+	if err != nil || !token.Valid {
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+			"error": "Invalid or expired token",
+		})
+	}
+
+	// ดึง User ID จาก Claims
+	claims, ok := token.Claims.(*Claims)
+	if !ok {
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+			"error": "Failed to parse token claims",
+		})
+	}
+
+	userID := claims.ID
+
+	// ค้นหา Level ของผู้ใช้จากฐานข้อมูล
+	userLevel, err := u.queryUserLevelByID(userID)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
+				"error": "User not found",
+			})
+		}
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": "Failed to query user level",
+		})
+	}
+
+	// ส่ง Level กลับใน JSON
+	return c.JSON(fiber.Map{
+		"user_level": *userLevel,
+	})
+}
+
+// ฟังก์ชันสำหรับดึงข้อมูล Level ของผู้ใช้จากฐานข้อมูล
+func (u *UserController) queryUserLevelByID(userID string) (*int, error) {
+	var level int
+
+	// คำสั่ง SQL เพื่อดึงข้อมูล Level
+	query := `
+		SELECT level 
+		FROM users 
+		WHERE id = ?
+	`
+
+	// เตรียมการ query
+	err := u.db.QueryRow(query, userID).Scan(&level)
+	if err != nil {
+		return nil, err
+	}
+
+	return &level, nil
 }

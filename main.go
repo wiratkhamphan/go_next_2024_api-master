@@ -35,7 +35,8 @@ func main() {
 		return c.Next()
 	})
 	routes.Setup(app)
-	routes.SetupRoutes(app, db)
+	routes.SetupRoutes_user(app, db)
+	routes.SerupRoutes_Record(app, db)
 
 	app.Listen(":8000")
 }

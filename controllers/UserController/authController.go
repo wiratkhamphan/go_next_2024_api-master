@@ -102,7 +102,8 @@ func Login(c *fiber.Ctx) error {
 	}
 
 	c.Cookie(&cookie)
-	return c.JSON(fiber.Map{"message": "login successful"})
+	return c.JSON(fiber.Map{"message": "login successful",
+		"user": cookie})
 }
 
 // Get user information from JWT
