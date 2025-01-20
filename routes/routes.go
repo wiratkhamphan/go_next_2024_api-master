@@ -8,7 +8,6 @@ import (
 	Device "github.com/wiratkhamphan/go_next_2024_api-master/controllers/DeviceController"
 	RepairRecordController "github.com/wiratkhamphan/go_next_2024_api-master/controllers/RepairRecordController"
 	Section "github.com/wiratkhamphan/go_next_2024_api-master/controllers/SectionController"
-
 	controllers "github.com/wiratkhamphan/go_next_2024_api-master/controllers/UserController"
 )
 
@@ -44,21 +43,18 @@ func SetupRoutes_user(app *fiber.App, db *sqlx.DB) {
 	userGroup.Get("/api/user/level", userController.Level)
 }
 
-// company
-func SerupRoutes_Company(app *fiber.App, db *sqlx.DB) {
-
+// SetupRoutes for company
+func SetupRoutes_Company(app *fiber.App, db *sqlx.DB) {
 	CompanyController := CompanyController.NewCompany(db)
 
 	CompanyGroup := app.Group("/api/company")
 
 	CompanyGroup.Get("/info", controllers.CheckSignIn, CompanyController.GetCompanyInfo)
 	CompanyGroup.Post("/update", CompanyController.UpdateCompanyInfo)
-
 }
 
-// repair record
-func SerupRoutes_Record(app *fiber.App, db *sqlx.DB) {
-
+// SetupRoutes for repair records
+func SetupRoutes_Record(app *fiber.App, db *sqlx.DB) {
 	RepairRecordController := RepairRecordController.NewRecord(db)
 
 	RecordGroup := app.Group("/api/repairRecord")
@@ -72,17 +68,17 @@ func SerupRoutes_Record(app *fiber.App, db *sqlx.DB) {
 	RecordGroup.Get("/incomePerMonth", RepairRecordController.IncomePerMonth)
 	app.Get("/api/income/report/:startDate/:endDate", RepairRecordController.Report)
 	RecordGroup.Get("/dashboard", RepairRecordController.Dashboard)
-
 }
 
+// SetupRoutes for department controller
 func SetupRoutes_DepartmentController(app *fiber.App, db *sqlx.DB) {
-
 	DepartmentController := Department.NewDepartment(db)
 
 	Group_DepartmentController := app.Group("/api/department")
-
 	Group_DepartmentController.Get("/list", DepartmentController.List)
 }
+
+// SetupRoutes for section controller
 func SetupRoutes_SectionController(app *fiber.App, db *sqlx.DB) {
 	SectionController := Section.NewSection(db)
 
@@ -90,14 +86,25 @@ func SetupRoutes_SectionController(app *fiber.App, db *sqlx.DB) {
 	Group_SectionController.Get("/listByDepartment/:departmentId", SectionController.List)
 }
 
+// SetupRoutes for device controller
 func SetupRoutes_DeviceController(app *fiber.App, db *sqlx.DB) {
-
 	DeviceController := Device.NewDevice(db)
 
 	Group_DeviceController := app.Group("/api/device")
-
 	Group_DeviceController.Post("/create", DeviceController.Create)
 	Group_DeviceController.Get("/list", DeviceController.List)
 	Group_DeviceController.Put("/update/:id", DeviceController.Update)
 	Group_DeviceController.Delete("/remove/:id", DeviceController.Remove)
+}
+
+// Route_api setups all the routes for the application
+func Route_api(app *fiber.App, db *sqlx.DB) {
+	// Setup all routes
+	Setup(app)
+	SetupRoutes_user(app, db)
+	SetupRoutes_Company(app, db)
+	SetupRoutes_Record(app, db)
+	SetupRoutes_DepartmentController(app, db)
+	SetupRoutes_SectionController(app, db)
+	SetupRoutes_DeviceController(app, db)
 }
