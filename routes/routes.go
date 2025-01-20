@@ -3,8 +3,12 @@ package routes
 import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/jmoiron/sqlx"
-	Company "github.com/wiratkhamphan/go_next_2024_api-master/controllers/Company"
-	Record "github.com/wiratkhamphan/go_next_2024_api-master/controllers/Record"
+	CompanyController "github.com/wiratkhamphan/go_next_2024_api-master/controllers/CompanyController"
+	Department "github.com/wiratkhamphan/go_next_2024_api-master/controllers/DepartmentController"
+	Device "github.com/wiratkhamphan/go_next_2024_api-master/controllers/DeviceController"
+	RepairRecordController "github.com/wiratkhamphan/go_next_2024_api-master/controllers/RepairRecordController"
+	Section "github.com/wiratkhamphan/go_next_2024_api-master/controllers/SectionController"
+
 	controllers "github.com/wiratkhamphan/go_next_2024_api-master/controllers/UserController"
 )
 
@@ -40,24 +44,60 @@ func SetupRoutes_user(app *fiber.App, db *sqlx.DB) {
 	userGroup.Get("/api/user/level", userController.Level)
 }
 
-func SerupRoutes_Record(app *fiber.App, db *sqlx.DB) {
-
-	RepairRecordController := Record.NewRecord(db)
-
-	RecordGroup := app.Group("/api/Record")
-
-	RecordGroup.Get("repairRecord/list", RepairRecordController.List)
-	RecordGroup.Post("repairRecord/create", RepairRecordController.Create)
-
-}
-
+// company
 func SerupRoutes_Company(app *fiber.App, db *sqlx.DB) {
 
-	CompanyController := Company.NewCompany(db)
+	CompanyController := CompanyController.NewCompany(db)
 
 	CompanyGroup := app.Group("/api/company")
 
-	CompanyGroup.Get("Company/list", CompanyController.CheckSignIn, CompanyController.GetCompanyInfo)
-	CompanyGroup.Post("Company/create", CompanyController.CheckSignIn, CompanyController.UpdateCompanyInfo)
+	CompanyGroup.Get("/info", controllers.CheckSignIn, CompanyController.GetCompanyInfo)
+	CompanyGroup.Post("/update", CompanyController.UpdateCompanyInfo)
 
+}
+
+// repair record
+func SerupRoutes_Record(app *fiber.App, db *sqlx.DB) {
+
+	RepairRecordController := RepairRecordController.NewRecord(db)
+
+	RecordGroup := app.Group("/api/repairRecord")
+
+	RecordGroup.Get("/list", RepairRecordController.List)
+	RecordGroup.Post("/create", RepairRecordController.Create)
+	RecordGroup.Put("/update/:id", RepairRecordController.Update)
+	RecordGroup.Delete("/remove/:id", RepairRecordController.Remove)
+	RecordGroup.Put("/updateStatus/:id", RepairRecordController.UpdateStatus)
+	RecordGroup.Put("/receive", RepairRecordController.Receive)
+	RecordGroup.Get("/incomePerMonth", RepairRecordController.IncomePerMonth)
+	app.Get("/api/income/report/:startDate/:endDate", RepairRecordController.Report)
+	RecordGroup.Get("/dashboard", RepairRecordController.Dashboard)
+
+}
+
+func SetupRoutes_DepartmentController(app *fiber.App, db *sqlx.DB) {
+
+	DepartmentController := Department.NewDepartment(db)
+
+	Group_DepartmentController := app.Group("/api/department")
+
+	Group_DepartmentController.Get("/list", DepartmentController.List)
+}
+func SetupRoutes_SectionController(app *fiber.App, db *sqlx.DB) {
+	SectionController := Section.NewSection(db)
+
+	Group_SectionController := app.Group("/api/section")
+	Group_SectionController.Get("/listByDepartment/:departmentId", SectionController.List)
+}
+
+func SetupRoutes_DeviceController(app *fiber.App, db *sqlx.DB) {
+
+	DeviceController := Device.NewDevice(db)
+
+	Group_DeviceController := app.Group("/api/device")
+
+	Group_DeviceController.Post("/create", DeviceController.Create)
+	Group_DeviceController.Get("/list", DeviceController.List)
+	Group_DeviceController.Put("/update/:id", DeviceController.Update)
+	Group_DeviceController.Delete("/remove/:id", DeviceController.Remove)
 }

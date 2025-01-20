@@ -15,7 +15,7 @@ var DB *sql.DB
 func DatabaseConfig() {
 	dbUser := "root"
 	dbPass := ""
-	dbName := "shoplek"
+	dbName := "go_workshop_dmeo"
 	dsn := dbUser + ":" + dbPass + "@tcp(127.0.0.1:3306)/" + dbName + "?charset=utf8mb4&parseTime=True&loc=Local"
 
 	// Create database connection using sql.Open
@@ -56,7 +56,7 @@ func DatabaseConfig1() (*sqlx.DB, error) {
 	dbDriver := "mysql"
 	dbUser := "root"
 	dbPass := ""
-	dbName := "shoplek"
+	dbName := "go_workshop_dmeo"
 
 	// Create database connection
 	db, err := sqlx.Open(dbDriver, dbUser+":"+dbPass+"@/"+dbName)

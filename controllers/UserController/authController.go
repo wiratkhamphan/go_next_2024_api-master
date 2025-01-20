@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"database/sql"
+	"os"
 	"strconv"
 	"time"
 
@@ -13,6 +14,25 @@ import (
 )
 
 const SecretKey = "secret"
+
+var jwtSecret = []byte(os.Getenv("JWT_SECRET"))
+
+func CheckSignIn(c *fiber.Ctx) error {
+	tokenString := c.Get("Authorization")[7:] // Extract Bearer token
+	if tokenString == "" {
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"message": "Unauthorized: Token missing"})
+	}
+
+	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
+		return jwtSecret, nil
+	})
+
+	if err != nil || !token.Valid {
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"message": "Unauthorized: Invalid token"})
+	}
+
+	return c.Next()
+}
 
 // Register a new user
 func Register(c *fiber.Ctx) error {
@@ -68,7 +88,7 @@ func Login(c *fiber.Ctx) error {
 	query := "SELECT id, name, email, password FROM users WHERE email = ? LIMIT 1"
 	row := database.DB.QueryRow(query, data["email"])
 
-	if err := row.Scan(&user.Id, &user.Name, &user.Email, &user.Password); err != nil {
+	if err := row.Scan(&user.ID, &user.Name, &user.Email, &user.Password); err != nil {
 		if err == sql.ErrNoRows {
 			return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": "user not found"})
 		}
@@ -82,7 +102,7 @@ func Login(c *fiber.Ctx) error {
 
 	// Create JWT claims
 	claims := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.StandardClaims{
-		Issuer:    strconv.Itoa(int(user.Id)),
+		Issuer:    strconv.Itoa(int(user.ID)),
 		ExpiresAt: time.Now().Add(time.Hour * 24).Unix(),
 	})
 
@@ -126,7 +146,7 @@ func User(c *fiber.Ctx) error {
 	query := "SELECT id, name, email, password FROM users WHERE id = ? LIMIT 1"
 	row := database.DB.QueryRow(query, claims.Issuer)
 
-	if err := row.Scan(&user.Id, &user.Name, &user.Email, &user.Password); err != nil {
+	if err := row.Scan(&user.ID, &user.Name, &user.Email, &user.Password); err != nil {
 		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": "user not found"})
 	}
 

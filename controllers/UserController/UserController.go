@@ -34,7 +34,7 @@ func (u *UserController) SignIn(c *fiber.Ctx) error {
 	row := u.db.QueryRow(query, data.Username, data.Password)
 
 	// Scan the result and handle errors
-	if err := row.Scan(&user.Id, &user.Username, &user.Level); err != nil {
+	if err := row.Scan(&user.ID, &user.Username, &user.Level); err != nil {
 		if err == sql.ErrNoRows {
 			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Invalid username or password"})
 		}
@@ -95,7 +95,7 @@ func (u *UserController) ListEngineer(c *fiber.Ctx) error {
 	// Iterate over the result set and append engineers to the list
 	for rows.Next() {
 		var user models.Users
-		if err := rows.Scan(&user.Id, &user.Username, &user.Level); err != nil {
+		if err := rows.Scan(&user.ID, &user.Username, &user.Level); err != nil {
 			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Error scanning user"})
 		}
 		engineers = append(engineers, user)
@@ -117,7 +117,7 @@ func (u *UserController) List(c *fiber.Ctx) error {
 
 	for rows.Next() {
 		var user models.Users
-		if err := rows.Scan(&user.Id, &user.Username, &user.Level); err != nil {
+		if err := rows.Scan(&user.ID, &user.Username, &user.Level); err != nil {
 			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Error scanning user"})
 		}
 		users = append(users, user)
