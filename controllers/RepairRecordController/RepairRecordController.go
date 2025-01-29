@@ -74,7 +74,7 @@ func (r *Record) List(c *fiber.Ctx) error {
 			&repairRecord.Amount,
 			&repairRecord.ImageBeforeRepair,
 			&repairRecord.ImageAfterRepair,
-			&repairRecord.Engineer, // Assuming RepairRecord has an "Engineer" field
+			&repairRecord.Engineer,
 		); err != nil {
 			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Error scanning repair record"})
 		}
@@ -90,11 +90,9 @@ func (r *Record) List(c *fiber.Ctx) error {
 	})
 }
 
-// Create creates a new repair record
 func (r *Record) Create(c *fiber.Ctx) error {
 	var body models.RepairRecord
 
-	// Parse JSON request body into body
 	if err := c.BodyParser(&body); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"error": "Invalid request body",
@@ -104,14 +102,12 @@ func (r *Record) Create(c *fiber.Ctx) error {
 	// Log parsed body for debugging
 	fmt.Printf("Parsed Body: %+v\n", body)
 
-	// Validate required fields (optional)
 	if body.CustomerName == "" || body.CustomerPhone == "" || body.DeviceName == "" {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"error": "Required fields are missing: customerName, customerPhone, deviceName",
 		})
 	}
 
-	// SQL Insert query using NamedExec
 	query := `
 		INSERT INTO RepairRecord (
 			customerName, customerPhone, deviceName, deviceBarcode, deviceSerial, problem, solving, deviceId, userId, engineerId, status, createdAt
@@ -271,8 +267,8 @@ func (r *Record) UpdateStatus(c *fiber.Ctx) error {
 
 func (r *Record) Receive(c *fiber.Ctx) error {
 	var body struct {
-		ID     int    `json:"id"`     // ID ของ repair record
-		Status string `json:"status"` // สถานะใหม่ที่ต้องการตั้งค่า
+		ID     int    `json:"id"`
+		Status string `json:"status"`
 	}
 
 	// Parse JSON body

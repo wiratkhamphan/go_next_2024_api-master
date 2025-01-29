@@ -2,11 +2,14 @@ package controllers
 
 import (
 	"database/sql"
+	"strconv"
+	"time"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/jmoiron/sqlx"
 	"github.com/wiratkhamphan/go_next_2024_api-master/models"
+	"golang.org/x/crypto/bcrypt"
 )
 
 // UserController struct for handling user-related actions
@@ -23,27 +26,61 @@ func NewUserController(db *sqlx.DB) *UserController {
 func (u *UserController) SignIn(c *fiber.Ctx) error {
 	data := new(models.UserLogin)
 
-	// Parse the request body to extract login data
+	// Parse the request body
 	if err := c.BodyParser(data); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid input"})
 	}
 
 	var user models.Users
-	// Query to check if the user exists with the provided username and password
-	query := "SELECT id, username, level FROM users WHERE username = ? AND password = ? AND status = 'active'"
-	row := u.db.QueryRow(query, data.Username, data.Password)
 
-	// Scan the result and handle errors
-	if err := row.Scan(&user.ID, &user.Username, &user.Level); err != nil {
+	// Query user data by username
+	query := "SELECT id, username, level, password FROM users WHERE username = ? AND status = 'active'"
+	row := u.db.QueryRow(query, data.Username)
+
+	// Scan result into user struct
+	if err := row.Scan(&user.ID, &user.Username, &user.Level, &user.Password); err != nil {
 		if err == sql.ErrNoRows {
 			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Invalid username or password"})
 		}
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Database error"})
 	}
 
+	// Compare password with hashed password
+	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(data.Password)); err != nil {
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Incorrect password"})
+	}
+
+	// Generate JWT token
+	claims := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.StandardClaims{
+		Issuer:    strconv.Itoa(int(user.ID)),
+		ExpiresAt: time.Now().Add(time.Hour * 24).Unix(),
+	})
+
+	token, err := claims.SignedString([]byte(SecretKey))
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Could not generate token"})
+	}
+
+	// Create JWT cookie
+	cookie := fiber.Cookie{
+		Name:     "jwt",
+		Value:    token,
+		Expires:  time.Now().Add(time.Hour * 24),
+		HTTPOnly: true,
+		Secure:   true,
+		SameSite: "Strict",
+	}
+	c.Cookie(&cookie)
+
+	// Return response with token and user info
 	return c.JSON(fiber.Map{
 		"message": "Sign in successful",
-		"user":    user,
+		"user": fiber.Map{
+			"id":       user.ID,
+			"username": user.Username,
+			"level":    user.Level,
+		},
+		"token": token,
 	})
 }
 
@@ -136,10 +173,18 @@ func (u *UserController) Create(c *fiber.Ctx) error {
 	if err := c.BodyParser(data); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid input"})
 	}
+	if data.Username == "" || data.Password == "" {
+		return fiber.ErrUnprocessableEntity
+	}
 
+	// Hash the password
+	password, err := bcrypt.GenerateFromPassword([]byte(data.Password), 10)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "failed to hash password"})
+	}
 	// Insert the new user into the database
-	query := "INSERT INTO users (username, password, level, section_id, status) VALUES (?, ?, ?, ?, 'active')"
-	_, err := u.db.Exec(query, data.Username, data.Password, data.Level, data.SectionID)
+	query := "INSERT INTO users (username, password, level, sectionId , status) VALUES (?, ?, ?, ?, 'active')"
+	_, err = u.db.Exec(query, data.Username, string(password), data.Level, data.SectionID)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to create user"})
 	}
